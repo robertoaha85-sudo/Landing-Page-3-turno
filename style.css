@@ -526,8 +526,8 @@ footer {
 
 /* Animations */
 .fade-in {
-    opacity: 0;
-    transform: translateY(20px);
+    /* opacity: 0; - Removed to ensure visibility */
+    /* transform: translateY(20px); - Removed to ensure visibility */
     transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
