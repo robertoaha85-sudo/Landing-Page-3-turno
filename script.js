@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullScreenBtn = document.getElementById('full-screen-btn');
 
     if (videoContainer && video) {
-        // Ensure video plays muted initially (browser policy friendly)
+        // Ensure video plays muted initially (required for autoplay)
         video.muted = true;
         video.play().catch(e => console.log("Autoplay failed:", e));
 
@@ -81,29 +81,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Function to unmute and restart video
         const unmuteAndRestart = () => {
-            video.muted = false;
-            video.volume = 1.0;
-            video.currentTime = 0;
-            
-            // Update UI
-            if (muteBtn && volumeBar) {
-                muteBtn.textContent = '🔊';
-                volumeBar.value = 1;
+            if (video.muted) {
+                video.muted = false;
+                video.volume = 1.0;
+                video.currentTime = 0;
+                
+                // Update UI
+                if (muteBtn && volumeBar) {
+                    muteBtn.textContent = '🔊';
+                    volumeBar.value = 1;
+                }
+                
+                video.play().catch(e => console.error("Play failed:", e));
             }
-            
-            video.play().catch(e => console.error("Play failed:", e));
         };
 
-        // Click on video un-mutes it if muted
+        // GLOBAL UNMUTE STRATEGY:
+        // Try to unmute on ANY interaction with the page (click, scroll, touch)
+        const enableSoundOnInteraction = () => {
+            unmuteAndRestart();
+            // Remove listeners after first successful interaction
+            document.removeEventListener('click', enableSoundOnInteraction);
+            document.removeEventListener('touchstart', enableSoundOnInteraction);
+            document.removeEventListener('keydown', enableSoundOnInteraction);
+            document.removeEventListener('scroll', enableSoundOnInteraction);
+        };
+
+        document.addEventListener('click', enableSoundOnInteraction);
+        document.addEventListener('touchstart', enableSoundOnInteraction);
+        document.addEventListener('keydown', enableSoundOnInteraction);
+        // Note: Scroll might be too aggressive/annoying if they just want to read, 
+        // but user asked for sound ASAP. Let's stick to click/touch for now to be safe, 
+        // or maybe just click/touch is enough. Scroll often blocks audio context start.
+        // Let's keep click/touchstart/keydown.
+
+        // Specific video click listener (backup)
         video.addEventListener('click', (e) => {
             e.preventDefault();
-            if (video.muted) {
-                unmuteAndRestart();
-            } else {
-                // If already unmuted, ensure it keeps playing (no pause allowed)
-                if (video.paused) video.play();
-            }
+            unmuteAndRestart();
         });
+        
+        // Also handle touchstart specifically for the video to be responsive immediately
+        video.addEventListener('touchstart', (e) => {
+            // Don't prevent default on touchstart globally as it breaks scrolling, 
+            // but for video specifically it might be okay if we want to catch the tap.
+            // However, let's just trigger the unmute.
+            unmuteAndRestart();
+        }, { passive: true });
 
         // Ensure video keeps playing if it pauses for some reason
         video.addEventListener('pause', () => {
