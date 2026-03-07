@@ -59,132 +59,21 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCountdown();
     }
 
-    // Video Logic & Custom Controls - SIMPLIFIED & ROBUST
+    // Video Logic (Simple Autoplay)
     const video = document.getElementById('hero-video');
-    const overlay = document.getElementById('video-overlay');
-    const customControls = document.getElementById('custom-controls');
-    const seekBar = document.getElementById('seek-bar');
-    const muteBtn = document.getElementById('mute-btn');
-    const volumeBar = document.getElementById('volume-bar');
-    const fullScreenBtn = document.getElementById('full-screen-btn');
-
+    
     if (video) {
-        // 1. Force Autoplay Muted (Browser Standard)
+        // Ensure video plays muted initially (browser policy friendly)
         video.muted = true;
-        video.play().catch(e => console.log("Autoplay error:", e));
-
-        // 2. Setup Initial UI State
-        if (customControls) {
-            customControls.style.opacity = '0';
-            customControls.style.pointerEvents = 'none';
-        }
-
-        // 3. Activation Function (The "Click to Unmute" logic)
-        const activateVideo = () => {
-            video.muted = false;
-            video.volume = 1.0;
-            video.currentTime = 0;
-            
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    // Hide Overlay
-                    if (overlay) {
-                        overlay.style.display = 'none'; // Completely remove from layout flow
-                    }
-                    // Show Controls
-                    if (customControls) {
-                        customControls.style.opacity = '1';
-                        customControls.style.pointerEvents = 'auto';
-                    }
-                    // Sync Buttons
-                    if (muteBtn) muteBtn.textContent = '🔊';
-                    if (volumeBar) volumeBar.value = 1;
-                }).catch(e => console.error("Activation play failed:", e));
-            }
-        };
-
-        // 4. Overlay Click Listener
-        if (overlay) {
-            overlay.addEventListener('click', (e) => {
-                e.stopPropagation();
-                activateVideo();
-            });
-            // Touch support
-            overlay.addEventListener('touchstart', (e) => {
-                e.stopPropagation();
-                e.preventDefault(); // Prevent double-firing on some devices
-                activateVideo();
-            }, { passive: false });
-        }
-
-        // 5. Video Click Listener (Toggle Play/Pause AFTER activation)
-        video.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (video.muted) {
-                activateVideo();
-            } else {
-                if (video.paused) video.play();
-                else video.pause();
+        video.play().catch(e => console.log("Autoplay failed:", e));
+        
+        // Ensure video keeps playing if it pauses for some reason
+        video.addEventListener('pause', () => {
+            if (!video.ended && !video.seeking && !video.paused) { // Check if user intentionally paused? No, just ensure loop.
+               // Actually, with native controls, user MIGHT want to pause.
+               // So we should NOT force play on pause.
+               // Just let native controls handle it.
             }
         });
-
-        // 6. Controls Logic
-        if (customControls) {
-            // Prevent clicks on controls from bubbling to video
-            customControls.addEventListener('click', (e) => e.stopPropagation());
-            customControls.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
-
-            // Seek Bar
-            if (seekBar) {
-                video.addEventListener('timeupdate', () => {
-                    if (!isNaN(video.duration)) {
-                        seekBar.value = (100 / video.duration) * video.currentTime;
-                    }
-                });
-                
-                seekBar.addEventListener('input', (e) => {
-                    e.stopPropagation();
-                    if (!isNaN(video.duration)) {
-                        video.currentTime = (seekBar.value / 100) * video.duration;
-                    }
-                });
-            }
-
-            // Volume Bar
-            if (volumeBar) {
-                volumeBar.addEventListener('input', (e) => {
-                    e.stopPropagation();
-                    video.volume = volumeBar.value;
-                    video.muted = false;
-                    if (muteBtn) muteBtn.textContent = video.volume === 0 ? '🔇' : '🔊';
-                });
-            }
-
-            // Mute Button (Small one in controls)
-            if (muteBtn) {
-                muteBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    video.muted = !video.muted;
-                    muteBtn.textContent = video.muted ? '🔇' : '🔊';
-                    if (volumeBar) volumeBar.value = video.muted ? 0 : video.volume;
-                });
-            }
-
-            // Fullscreen Button
-            if (fullScreenBtn) {
-                fullScreenBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    if (!document.fullscreenElement) {
-                        if (video.requestFullscreen) video.requestFullscreen();
-                        else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen(); // Safari
-                        else if (video.msRequestFullscreen) video.msRequestFullscreen(); // IE11
-                        else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen(); // iOS
-                    } else {
-                        if (document.exitFullscreen) document.exitFullscreen();
-                    }
-                });
-            }
-        }
     }
 });

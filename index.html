@@ -26,28 +26,10 @@
     <section class="hero container fade-in">
         <div class="hero-video" id="video-container">
             <!-- Substitua 'video.mp4' pelo nome exato do arquivo de vídeo que você enviou -->
-            <video id="hero-video" autoplay muted loop playsinline>
+            <video id="hero-video" autoplay muted loop playsinline controls>
                 <source src="https://i.imgur.com/0c1jXeX.mp4" type="video/mp4">
                 Seu navegador não suporta a tag de vídeo.
             </video>
-            
-            <div class="video-overlay" id="video-overlay">
-                <div class="unmute-btn">
-                    🔊 CLIQUE PARA ATIVAR O SOM
-                </div>
-            </div>
-            
-            <!-- Custom Controls -->
-            <div class="custom-controls" id="custom-controls">
-                <input type="range" id="seek-bar" value="0" step="0.1" style="width: 100%; cursor: pointer;">
-                <div class="controls-row">
-                    <div class="volume-container">
-                        <button id="mute-btn" style="background:none; border:none; color:white; font-size: 1.2rem; cursor: pointer;">🔊</button>
-                        <input type="range" id="volume-bar" min="0" max="1" step="0.1" value="1" style="width: 80px; cursor: pointer;">
-                    </div>
-                    <button id="full-screen-btn" style="background:none; border:none; color:white; font-size: 1.2rem; cursor: pointer;">⛶</button>
-                </div>
-            </div>
         </div>
 
         <div class="hero-content">
