@@ -24,12 +24,17 @@
 
     <!-- Hero Section -->
     <section class="hero container fade-in">
-        <div class="hero-video">
+        <div class="hero-video" id="video-container">
             <!-- Substitua 'video.mp4' pelo nome exato do arquivo de vídeo que você enviou -->
-            <video controls autoplay muted loop playsinline>
+            <video id="hero-video" autoplay muted loop playsinline>
                 <source src="https://i.imgur.com/0c1jXeX.mp4" type="video/mp4">
                 Seu navegador não suporta a tag de vídeo.
             </video>
+            <div class="video-overlay" id="video-overlay">
+                <div class="unmute-btn">
+                    🔊 CLIQUE PARA ATIVAR O SOM
+                </div>
+            </div>
         </div>
 
         <div class="hero-content">

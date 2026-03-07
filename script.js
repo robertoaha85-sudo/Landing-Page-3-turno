@@ -58,4 +58,36 @@ document.addEventListener('DOMContentLoaded', () => {
         setInterval(updateCountdown, 1000);
         updateCountdown();
     }
+
+    // Video Unmute Logic
+    const videoContainer = document.getElementById('video-container');
+    const video = document.getElementById('hero-video');
+    const overlay = document.getElementById('video-overlay');
+
+    if (videoContainer && video && overlay) {
+        const unmuteVideo = () => {
+            if (video.muted) {
+                video.muted = false;
+                video.currentTime = 0; // Restart video from beginning
+                video.play().catch(e => console.log("Playback failed:", e));
+                overlay.classList.add('hidden');
+            }
+        };
+
+        overlay.addEventListener('click', unmuteVideo);
+        
+        // Prevent pausing by clicking
+        video.addEventListener('click', (e) => {
+            e.preventDefault();
+            // If for some reason it's paused, play it
+            if (video.paused) video.play();
+        });
+
+        // Ensure video keeps playing if it pauses for some reason
+        video.addEventListener('pause', () => {
+            if (!video.muted && !video.ended) {
+                video.play();
+            }
+        });
+    }
 });
