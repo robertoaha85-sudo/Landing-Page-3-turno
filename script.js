@@ -70,56 +70,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullScreenBtn = document.getElementById('full-screen-btn');
 
     if (videoContainer && video) {
-        // Function to enable sound and start video
+        // Ensure video is playing (muted autoplay is handled by HTML attribute, but we reinforce here)
+        video.muted = true;
+        video.play().catch(e => console.log("Autoplay failed:", e));
+
+        // Function to enable sound and start video properly
         const enableSound = () => {
             video.muted = false;
             video.volume = 1.0;
             video.currentTime = 0; // Restart so they hear the beginning
-            video.play().catch(e => console.log("Playback failed:", e));
             
-            if (overlay) {
-                overlay.classList.add('hidden');
-            }
-            
-            // Update mute button UI
-            if (muteBtn && volumeBar) {
-                muteBtn.textContent = '🔊';
-                volumeBar.value = 1;
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    if (overlay) overlay.classList.add('hidden');
+                    if (customControls) customControls.classList.add('visible');
+                    
+                    // Update mute button UI
+                    if (muteBtn && volumeBar) {
+                        muteBtn.textContent = '🔊';
+                        volumeBar.value = 1;
+                    }
+                }).catch(e => console.error("Play failed after unmute:", e));
             }
         };
 
-        // Attempt to play video with sound immediately (will likely fail, but worth a try)
-        video.muted = false;
-        video.volume = 1.0;
-        const playPromise = video.play();
-        
-        if (playPromise !== undefined) {
-            playPromise.then(_ => {
-                // Autoplay started with sound! (Rare)
-                if (overlay) overlay.classList.add('hidden');
-            }).catch(error => {
-                // Autoplay with sound blocked. Fallback to muted autoplay.
-                console.log("Autoplay with sound blocked. Waiting for user interaction.");
-                video.muted = true;
-                video.play();
-                
-                // Show overlay if it exists
-                if (overlay) {
-                    overlay.classList.remove('hidden');
-                    overlay.addEventListener('click', enableSound);
-                }
-            });
+        if (overlay) {
+            overlay.addEventListener('click', enableSound);
         }
         
-        // Prevent pausing by clicking
+        // Prevent pausing by clicking video, instead toggle sound if still muted
         video.addEventListener('click', (e) => {
             e.preventDefault();
-            // If overlay is visible, clicking video should also enable sound
             if (video.muted) {
                 enableSound();
+            } else {
+                // If already playing with sound, ensure it stays playing
+                if (video.paused) video.play();
             }
-            // If for some reason it's paused, play it
-            if (video.paused) video.play();
         });
 
         // Ensure video keeps playing if it pauses for some reason
