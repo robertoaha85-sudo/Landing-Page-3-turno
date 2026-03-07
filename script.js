@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Video Logic & Custom Controls
     const videoContainer = document.getElementById('video-container');
     const video = document.getElementById('hero-video');
+    const overlay = document.getElementById('video-overlay');
     const customControls = document.getElementById('custom-controls');
     const seekBar = document.getElementById('seek-bar');
     const muteBtn = document.getElementById('mute-btn');
@@ -69,74 +70,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullScreenBtn = document.getElementById('full-screen-btn');
 
     if (videoContainer && video) {
-        // Ensure video plays muted initially (required for autoplay)
+        // 1. Ensure video plays muted in background (Autoplay)
         video.muted = true;
-        video.play().catch(e => console.log("Autoplay failed:", e));
+        video.play().catch(e => console.log("Background autoplay failed:", e));
 
-        // Sync initial controls state
-        if (muteBtn && volumeBar) {
-            muteBtn.textContent = '🔇';
-            volumeBar.value = 0;
-        }
-
-        // Function to unmute and restart video
-        const unmuteAndRestart = () => {
-            if (video.muted) {
-                video.muted = false;
-                video.volume = 1.0;
-                video.currentTime = 0;
-                
-                // Update UI
-                if (muteBtn && volumeBar) {
-                    muteBtn.textContent = '🔊';
-                    volumeBar.value = 1;
-                }
-                
-                video.play().catch(e => console.error("Play failed:", e));
+        // 2. Function to Activate Sound (Unmute & Show Controls)
+        const activateSound = () => {
+            video.muted = false;
+            video.volume = 1.0;
+            video.currentTime = 0; // Restart video
+            
+            // Update UI
+            if (overlay) overlay.classList.add('hidden');
+            if (customControls) customControls.classList.add('visible');
+            
+            if (muteBtn && volumeBar) {
+                muteBtn.textContent = '🔊';
+                volumeBar.value = 1;
             }
+            
+            video.play().catch(e => console.error("Play with sound failed:", e));
         };
 
-        // GLOBAL UNMUTE STRATEGY:
-        // Try to unmute on ANY interaction with the page (click, scroll, touch)
-        const enableSoundOnInteraction = () => {
-            unmuteAndRestart();
-            // Remove listeners after first successful interaction
-            document.removeEventListener('click', enableSoundOnInteraction);
-            document.removeEventListener('touchstart', enableSoundOnInteraction);
-            document.removeEventListener('keydown', enableSoundOnInteraction);
-            document.removeEventListener('scroll', enableSoundOnInteraction);
-        };
-
-        document.addEventListener('click', enableSoundOnInteraction);
-        document.addEventListener('touchstart', enableSoundOnInteraction);
-        document.addEventListener('keydown', enableSoundOnInteraction);
-        // Note: Scroll might be too aggressive/annoying if they just want to read, 
-        // but user asked for sound ASAP. Let's stick to click/touch for now to be safe, 
-        // or maybe just click/touch is enough. Scroll often blocks audio context start.
-        // Let's keep click/touchstart/keydown.
-
-        // Specific video click listener (backup)
+        // 3. Attach Listener to Overlay
+        if (overlay) {
+            overlay.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent bubbling if necessary
+                activateSound();
+            });
+        }
+        
+        // 4. Attach Listener to Video (Backup: Click video to activate sound)
         video.addEventListener('click', (e) => {
             e.preventDefault();
-            unmuteAndRestart();
+            if (video.muted) {
+                activateSound();
+            } else {
+                // If sound is on, clicking video ensures it plays (no pause)
+                if (video.paused) video.play();
+            }
         });
-        
-        // Also handle touchstart specifically for the video to be responsive immediately
-        video.addEventListener('touchstart', (e) => {
-            // Don't prevent default on touchstart globally as it breaks scrolling, 
-            // but for video specifically it might be okay if we want to catch the tap.
-            // However, let's just trigger the unmute.
-            unmuteAndRestart();
-        }, { passive: true });
 
-        // Ensure video keeps playing if it pauses for some reason
+        // 5. Ensure video loops/plays if paused unexpectedly
         video.addEventListener('pause', () => {
-            if (!video.ended) {
+            if (!video.ended && !video.seeking) {
                 video.play();
             }
         });
 
-        // Custom Controls Logic
+        // 6. Custom Controls Logic (Always attached, but only visible after activation)
         if (customControls && seekBar && muteBtn && volumeBar && fullScreenBtn) {
             // Update seek bar as video plays
             video.addEventListener('timeupdate', () => {
@@ -147,28 +129,36 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // Seek functionality
-            seekBar.addEventListener('input', () => {
+            seekBar.addEventListener('input', (e) => {
+                e.stopPropagation(); // Ensure control interaction doesn't trigger video click
                 if (!isNaN(video.duration)) {
                     const time = (seekBar.value / 100) * video.duration;
                     video.currentTime = time;
                 }
             });
+            
+            // Prevent click propagation on controls container
+            customControls.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
 
             // Volume functionality
-            volumeBar.addEventListener('input', () => {
+            volumeBar.addEventListener('input', (e) => {
+                e.stopPropagation();
                 video.volume = volumeBar.value;
-                video.muted = false; // Unmute if volume changed
+                video.muted = false; 
                 
                 if (video.volume === 0) {
                     muteBtn.textContent = '🔇';
-                    video.muted = true;
+                    video.muted = true; // Technically muted if volume is 0
                 } else {
                     muteBtn.textContent = '🔊';
                 }
             });
 
             // Mute button toggle
-            muteBtn.addEventListener('click', () => {
+            muteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 if (video.muted || video.volume === 0) {
                     // Unmute
                     video.muted = false;
@@ -185,13 +175,16 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             // Fullscreen functionality
-            fullScreenBtn.addEventListener('click', () => {
+            fullScreenBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 if (video.requestFullscreen) {
                     video.requestFullscreen();
                 } else if (video.webkitRequestFullscreen) { /* Safari */
                     video.webkitRequestFullscreen();
                 } else if (video.msRequestFullscreen) { /* IE11 */
                     video.msRequestFullscreen();
+                } else if (video.webkitEnterFullscreen) { /* iOS Video */
+                    video.webkitEnterFullscreen();
                 }
             });
         }
