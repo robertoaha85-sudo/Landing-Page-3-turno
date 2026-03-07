@@ -62,7 +62,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Video Logic & Custom Controls
     const videoContainer = document.getElementById('video-container');
     const video = document.getElementById('hero-video');
-    const overlay = document.getElementById('video-overlay');
     const customControls = document.getElementById('custom-controls');
     const seekBar = document.getElementById('seek-bar');
     const muteBtn = document.getElementById('mute-btn');
@@ -70,42 +69,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const fullScreenBtn = document.getElementById('full-screen-btn');
 
     if (videoContainer && video) {
-        // Ensure video is playing (muted autoplay is handled by HTML attribute, but we reinforce here)
+        // Ensure video plays muted initially (browser policy friendly)
         video.muted = true;
         video.play().catch(e => console.log("Autoplay failed:", e));
 
-        // Function to enable sound and start video properly
-        const enableSound = () => {
+        // Sync initial controls state
+        if (muteBtn && volumeBar) {
+            muteBtn.textContent = '🔇';
+            volumeBar.value = 0;
+        }
+
+        // Function to unmute and restart video
+        const unmuteAndRestart = () => {
             video.muted = false;
             video.volume = 1.0;
-            video.currentTime = 0; // Restart so they hear the beginning
+            video.currentTime = 0;
             
-            const playPromise = video.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    if (overlay) overlay.classList.add('hidden');
-                    if (customControls) customControls.classList.add('visible');
-                    
-                    // Update mute button UI
-                    if (muteBtn && volumeBar) {
-                        muteBtn.textContent = '🔊';
-                        volumeBar.value = 1;
-                    }
-                }).catch(e => console.error("Play failed after unmute:", e));
+            // Update UI
+            if (muteBtn && volumeBar) {
+                muteBtn.textContent = '🔊';
+                volumeBar.value = 1;
             }
+            
+            video.play().catch(e => console.error("Play failed:", e));
         };
 
-        if (overlay) {
-            overlay.addEventListener('click', enableSound);
-        }
-        
-        // Prevent pausing by clicking video, instead toggle sound if still muted
+        // Click on video un-mutes it if muted
         video.addEventListener('click', (e) => {
             e.preventDefault();
             if (video.muted) {
-                enableSound();
+                unmuteAndRestart();
             } else {
-                // If already playing with sound, ensure it stays playing
+                // If already unmuted, ensure it keeps playing (no pause allowed)
                 if (video.paused) video.play();
             }
         });
@@ -138,8 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Volume functionality
             volumeBar.addEventListener('input', () => {
                 video.volume = volumeBar.value;
+                video.muted = false; // Unmute if volume changed
+                
                 if (video.volume === 0) {
                     muteBtn.textContent = '🔇';
+                    video.muted = true;
                 } else {
                     muteBtn.textContent = '🔊';
                 }
@@ -147,21 +145,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Mute button toggle
             muteBtn.addEventListener('click', () => {
-                // Check if currently muted (either via property or volume 0)
-                const isMuted = video.muted || video.volume === 0;
-
-                if (!isMuted) {
-                    // Mute
-                    video.muted = true;
-                    video.volume = 0;
-                    volumeBar.value = 0;
-                    muteBtn.textContent = '🔇';
-                } else {
+                if (video.muted || video.volume === 0) {
                     // Unmute
                     video.muted = false;
                     video.volume = 1;
                     volumeBar.value = 1;
                     muteBtn.textContent = '🔊';
+                } else {
+                    // Mute
+                    video.muted = true;
+                    video.volume = 0;
+                    volumeBar.value = 0;
+                    muteBtn.textContent = '🔇';
                 }
             });
 
