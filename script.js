@@ -59,8 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCountdown();
     }
 
-    // Video Logic & Custom Controls
-    const videoContainer = document.getElementById('video-container');
+    // Video Logic & Custom Controls - SIMPLIFIED & ROBUST
     const video = document.getElementById('hero-video');
     const overlay = document.getElementById('video-overlay');
     const customControls = document.getElementById('custom-controls');
@@ -69,124 +68,123 @@ document.addEventListener('DOMContentLoaded', () => {
     const volumeBar = document.getElementById('volume-bar');
     const fullScreenBtn = document.getElementById('full-screen-btn');
 
-    if (videoContainer && video) {
-        // 1. Ensure video plays muted in background (Autoplay)
+    if (video) {
+        // 1. Force Autoplay Muted (Browser Standard)
         video.muted = true;
-        video.play().catch(e => console.log("Background autoplay failed:", e));
+        video.play().catch(e => console.log("Autoplay error:", e));
 
-        // 2. Function to Activate Sound (Unmute & Show Controls)
-        const activateSound = () => {
+        // 2. Setup Initial UI State
+        if (customControls) {
+            customControls.style.opacity = '0';
+            customControls.style.pointerEvents = 'none';
+        }
+
+        // 3. Activation Function (The "Click to Unmute" logic)
+        const activateVideo = () => {
             video.muted = false;
             video.volume = 1.0;
-            video.currentTime = 0; // Restart video
+            video.currentTime = 0;
             
-            // Update UI
-            if (overlay) overlay.classList.add('hidden');
-            if (customControls) customControls.classList.add('visible');
-            
-            if (muteBtn && volumeBar) {
-                muteBtn.textContent = '🔊';
-                volumeBar.value = 1;
+            const playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    // Hide Overlay
+                    if (overlay) {
+                        overlay.style.display = 'none'; // Completely remove from layout flow
+                    }
+                    // Show Controls
+                    if (customControls) {
+                        customControls.style.opacity = '1';
+                        customControls.style.pointerEvents = 'auto';
+                    }
+                    // Sync Buttons
+                    if (muteBtn) muteBtn.textContent = '🔊';
+                    if (volumeBar) volumeBar.value = 1;
+                }).catch(e => console.error("Activation play failed:", e));
             }
-            
-            video.play().catch(e => console.error("Play with sound failed:", e));
         };
 
-        // 3. Attach Listener to Overlay
+        // 4. Overlay Click Listener
         if (overlay) {
             overlay.addEventListener('click', (e) => {
-                e.stopPropagation(); // Prevent bubbling if necessary
-                activateSound();
+                e.stopPropagation();
+                activateVideo();
             });
+            // Touch support
+            overlay.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+                e.preventDefault(); // Prevent double-firing on some devices
+                activateVideo();
+            }, { passive: false });
         }
-        
-        // 4. Attach Listener to Video (Backup: Click video to activate sound)
+
+        // 5. Video Click Listener (Toggle Play/Pause AFTER activation)
         video.addEventListener('click', (e) => {
-            e.preventDefault();
+            e.stopPropagation();
             if (video.muted) {
-                activateSound();
+                activateVideo();
             } else {
-                // If sound is on, clicking video ensures it plays (no pause)
                 if (video.paused) video.play();
+                else video.pause();
             }
         });
 
-        // 5. Ensure video loops/plays if paused unexpectedly
-        video.addEventListener('pause', () => {
-            if (!video.ended && !video.seeking) {
-                video.play();
-            }
-        });
+        // 6. Controls Logic
+        if (customControls) {
+            // Prevent clicks on controls from bubbling to video
+            customControls.addEventListener('click', (e) => e.stopPropagation());
+            customControls.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
 
-        // 6. Custom Controls Logic (Always attached, but only visible after activation)
-        if (customControls && seekBar && muteBtn && volumeBar && fullScreenBtn) {
-            // Update seek bar as video plays
-            video.addEventListener('timeupdate', () => {
-                if (!isNaN(video.duration)) {
-                    const value = (100 / video.duration) * video.currentTime;
-                    seekBar.value = value;
-                }
-            });
-
-            // Seek functionality
-            seekBar.addEventListener('input', (e) => {
-                e.stopPropagation(); // Ensure control interaction doesn't trigger video click
-                if (!isNaN(video.duration)) {
-                    const time = (seekBar.value / 100) * video.duration;
-                    video.currentTime = time;
-                }
-            });
-            
-            // Prevent click propagation on controls container
-            customControls.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-
-            // Volume functionality
-            volumeBar.addEventListener('input', (e) => {
-                e.stopPropagation();
-                video.volume = volumeBar.value;
-                video.muted = false; 
+            // Seek Bar
+            if (seekBar) {
+                video.addEventListener('timeupdate', () => {
+                    if (!isNaN(video.duration)) {
+                        seekBar.value = (100 / video.duration) * video.currentTime;
+                    }
+                });
                 
-                if (video.volume === 0) {
-                    muteBtn.textContent = '🔇';
-                    video.muted = true; // Technically muted if volume is 0
-                } else {
-                    muteBtn.textContent = '🔊';
-                }
-            });
+                seekBar.addEventListener('input', (e) => {
+                    e.stopPropagation();
+                    if (!isNaN(video.duration)) {
+                        video.currentTime = (seekBar.value / 100) * video.duration;
+                    }
+                });
+            }
 
-            // Mute button toggle
-            muteBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (video.muted || video.volume === 0) {
-                    // Unmute
+            // Volume Bar
+            if (volumeBar) {
+                volumeBar.addEventListener('input', (e) => {
+                    e.stopPropagation();
+                    video.volume = volumeBar.value;
                     video.muted = false;
-                    video.volume = 1;
-                    volumeBar.value = 1;
-                    muteBtn.textContent = '🔊';
-                } else {
-                    // Mute
-                    video.muted = true;
-                    video.volume = 0;
-                    volumeBar.value = 0;
-                    muteBtn.textContent = '🔇';
-                }
-            });
+                    if (muteBtn) muteBtn.textContent = video.volume === 0 ? '🔇' : '🔊';
+                });
+            }
 
-            // Fullscreen functionality
-            fullScreenBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (video.requestFullscreen) {
-                    video.requestFullscreen();
-                } else if (video.webkitRequestFullscreen) { /* Safari */
-                    video.webkitRequestFullscreen();
-                } else if (video.msRequestFullscreen) { /* IE11 */
-                    video.msRequestFullscreen();
-                } else if (video.webkitEnterFullscreen) { /* iOS Video */
-                    video.webkitEnterFullscreen();
-                }
-            });
+            // Mute Button (Small one in controls)
+            if (muteBtn) {
+                muteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    video.muted = !video.muted;
+                    muteBtn.textContent = video.muted ? '🔇' : '🔊';
+                    if (volumeBar) volumeBar.value = video.muted ? 0 : video.volume;
+                });
+            }
+
+            // Fullscreen Button
+            if (fullScreenBtn) {
+                fullScreenBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (!document.fullscreenElement) {
+                        if (video.requestFullscreen) video.requestFullscreen();
+                        else if (video.webkitRequestFullscreen) video.webkitRequestFullscreen(); // Safari
+                        else if (video.msRequestFullscreen) video.msRequestFullscreen(); // IE11
+                        else if (video.webkitEnterFullscreen) video.webkitEnterFullscreen(); // iOS
+                    } else {
+                        if (document.exitFullscreen) document.exitFullscreen();
+                    }
+                });
+            }
         }
     }
 });

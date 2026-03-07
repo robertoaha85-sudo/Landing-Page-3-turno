@@ -194,6 +194,7 @@ header {
     justify-content: center;
     margin: 0 auto;
     position: relative; /* For overlay positioning */
+    -webkit-mask-image: -webkit-radial-gradient(white, black); /* Fix for Safari border-radius overflow */
 }
 
 .hero-video video {
@@ -209,18 +210,13 @@ header {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.4); /* Dark overlay */
+    background: rgba(0, 0, 0, 0.3); /* Slightly lighter overlay */
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    z-index: 20; /* Ensure it's on top */
+    z-index: 50; /* Highest priority */
     transition: opacity 0.3s ease;
-}
-
-.video-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
 }
 
 /* Custom Video Controls */
@@ -229,7 +225,7 @@ header {
     bottom: 0;
     left: 0;
     width: 100%;
-    background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+    background: linear-gradient(to top, rgba(0,0,0,0.9), transparent);
     padding: 1rem;
     display: flex;
     flex-direction: column;
@@ -237,7 +233,7 @@ header {
     opacity: 0; /* Hidden initially */
     transition: opacity 0.3s ease;
     pointer-events: none; /* Disable interaction when hidden */
-    z-index: 15; /* Above video, below overlay */
+    z-index: 40; /* Below overlay, above video */
 }
 
 .custom-controls.visible {
